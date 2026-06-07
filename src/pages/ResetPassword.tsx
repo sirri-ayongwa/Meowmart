@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(100);
+
+const TOAST_DURATION = 15000; // 15 seconds
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -18,6 +21,10 @@ const ResetPassword = () => {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailChecked, setEmailChecked] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+  const [emailCheckMessage, setEmailCheckMessage] = useState("");
 
   useEffect(() => {
     if (window.location.hash.includes("type=recovery")) {
@@ -29,62 +36,109 @@ const ResetPassword = () => {
     e.preventDefault();
     const result = emailSchema.safeParse(email);
     if (!result.success) {
-      toast({ title: "Invalid email", description: result.error.issues[0].message, variant: "destructive" });
+      toast({ 
+        title: "Invalid email", 
+        description: result.error.issues[0].message, 
+        variant: "destructive",
+        duration: TOAST_DURATION
+      });
       return;
     }
     
-    setLoading(true);
+    // Start checking email
+    setCheckingEmail(true);
+    setEmailChecked(false);
+    setEmailCheckMessage("");
     
-    // Check if email exists in auth users
     try {
+      // Check if email exists in auth users
       const { data, error: checkError } = await supabase.auth.admin.listUsers();
       
-      const emailExists = data?.users?.some(user => user.email === result.data);
+      const userExists = data?.users?.some(user => user.email === result.data);
       
-      if (!emailExists) {
+      setEmailChecked(true);
+      setCheckingEmail(false);
+
+      if (!userExists) {
+        setEmailExists(false);
+        setEmailCheckMessage("Email doesn't exist");
         toast({ 
           title: "Email not found", 
           description: "This email doesn't exist in our system. Please create a new account.", 
-          variant: "destructive" 
+          variant: "destructive",
+          duration: TOAST_DURATION
         });
-        setLoading(false);
         return;
       }
 
       // Email exists, send reset link
-      const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      setEmailExists(true);
+      setEmailCheckMessage("Email exists, sending reset link...");
       
-      setLoading(false);
-      
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        return;
-      }
-      
-      toast({ 
-        title: "Success!", 
-        description: "We've sent a password reset link to your email. Check your inbox!" 
-      });
-      setEmail("");
-    } catch (err) {
-      setLoading(false);
-      // Fallback: send reset link anyway (Supabase handles non-existent emails gracefully)
       const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       
       if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setEmailChecked(false);
+        toast({ 
+          title: "Error", 
+          description: error.message, 
+          variant: "destructive",
+          duration: TOAST_DURATION
+        });
         return;
       }
       
+      setEmailCheckMessage("Reset link sent successfully!");
       toast({ 
         title: "Check your email", 
-        description: "If an account exists with this email, we've sent a reset link." 
+        description: "We've sent you a reset link.", 
+        duration: TOAST_DURATION
       });
-      setEmail("");
+      
+      // Reset form after successful submission
+      setTimeout(() => {
+        setEmail("");
+        setEmailChecked(false);
+        setEmailCheckMessage("");
+      }, 2000);
+      
+    } catch (err) {
+      setCheckingEmail(false);
+      setEmailChecked(true);
+      
+      // Fallback: send reset link anyway (Supabase handles non-existent emails gracefully)
+      setEmailCheckMessage("Checking...");
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        setEmailChecked(false);
+        toast({ 
+          title: "Error", 
+          description: error.message, 
+          variant: "destructive",
+          duration: TOAST_DURATION
+        });
+        return;
+      }
+      
+      setEmailExists(true);
+      setEmailCheckMessage("Reset link sent successfully!");
+      toast({ 
+        title: "Check your email", 
+        description: "We've sent you a reset link.", 
+        duration: TOAST_DURATION
+      });
+      
+      setTimeout(() => {
+        setEmail("");
+        setEmailChecked(false);
+        setEmailCheckMessage("");
+      }, 2000);
     }
   };
 
@@ -92,17 +146,31 @@ const ResetPassword = () => {
     e.preventDefault();
     const result = passwordSchema.safeParse(newPassword);
     if (!result.success) {
-      toast({ title: "Invalid password", description: result.error.issues[0].message, variant: "destructive" });
+      toast({ 
+        title: "Invalid password", 
+        description: result.error.issues[0].message, 
+        variant: "destructive",
+        duration: TOAST_DURATION
+      });
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: result.data });
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive",
+        duration: TOAST_DURATION
+      });
       return;
     }
-    toast({ title: "Password updated", description: "You can now sign in with your new password." });
+    toast({ 
+      title: "Password updated", 
+      description: "You can now sign in with your new password.",
+      duration: TOAST_DURATION
+    });
     navigate("/login");
   };
 
@@ -123,19 +191,70 @@ const ResetPassword = () => {
             <form onSubmit={handleRequest} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={255} />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                  maxLength={255}
+                  disabled={checkingEmail}
+                />
               </div>
-              <Button type="submit" className="w-full bg-meow-purple hover:bg-meow-purple/90" disabled={loading}>
-                {loading ? "Sending..." : "Send Reset Link"}
+
+              {/* Email Check Loading State */}
+              {checkingEmail && (
+                <div className="flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <span className="text-blue-700 font-medium">Checking if email exists...</span>
+                </div>
+              )}
+
+              {/* Email Check Result Message */}
+              {emailChecked && !checkingEmail && (
+                <div className={`p-4 rounded-lg border ${
+                  emailExists 
+                    ? "bg-green-50 border-green-200" 
+                    : "bg-red-50 border-red-200"
+                }`}>
+                  <p className={`font-medium ${
+                    emailExists 
+                      ? "text-green-700" 
+                      : "text-red-700"
+                  }`}>
+                    {emailCheckMessage}
+                  </p>
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full bg-meow-purple hover:bg-meow-purple/90" 
+                disabled={checkingEmail || (emailChecked && !emailExists)}
+              >
+                {checkingEmail ? "Checking..." : "Send Reset Link"}
               </Button>
             </form>
           ) : (
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} maxLength={100} />
+                <Input 
+                  id="newPassword" 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  required 
+                  minLength={6} 
+                  maxLength={100}
+                  disabled={loading}
+                />
               </div>
-              <Button type="submit" className="w-full bg-meow-purple hover:bg-meow-purple/90" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-meow-purple hover:bg-meow-purple/90" 
+                disabled={loading}
+              >
                 {loading ? "Updating..." : "Update Password"}
               </Button>
             </form>
