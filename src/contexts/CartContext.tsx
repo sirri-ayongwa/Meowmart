@@ -42,6 +42,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasProcessedMerge, setHasProcessedMerge] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -85,34 +86,43 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [wishlistItems, isInitialized]);
 
-  // Merge cart from pre-login storage when user logs in
+  // Merge cart from pre-login storage when user logs in (only once per login)
   useEffect(() => {
-    if (user && isInitialized) {
+    if (user && isInitialized && !hasProcessedMerge) {
       try {
         const preLoginCart = localStorage.getItem('preLoginCartItems');
         if (preLoginCart) {
           const preLoginItems = JSON.parse(preLoginCart);
           setCartItems(prevItems => {
-            // Merge pre-login items with current items
+            // Only add new items that don't already exist in the authenticated cart
             const merged = [...prevItems];
             preLoginItems.forEach((preItem: CartItem) => {
               const existingIndex = merged.findIndex(item => item.id === preItem.id);
-              if (existingIndex > -1) {
-                merged[existingIndex].quantity += preItem.quantity;
-              } else {
+              if (existingIndex === -1) {
+                // Item doesn't exist, add it
                 merged.push(preItem);
               }
+              // If item exists, skip it - don't duplicate
             });
             return merged;
           });
           localStorage.removeItem('preLoginCartItems');
         }
+        setHasProcessedMerge(true);
       } catch (err) {
         console.error("Error merging pre-login cart:", err);
         localStorage.removeItem('preLoginCartItems');
+        setHasProcessedMerge(true);
       }
     }
-  }, [user, isInitialized]);
+  }, [user, isInitialized, hasProcessedMerge]);
+
+  // Reset merge flag when user logs out
+  useEffect(() => {
+    if (!user) {
+      setHasProcessedMerge(false);
+    }
+  }, [user]);
 
   const addToCart = (product: any) => {
     setCartItems(prevItems => {
