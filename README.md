@@ -256,7 +256,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 - Developer: [Sirri Ayongwa](https://sirri-portfolio-7lisv8t.gamma.site)
-- Project Link: [https://github.com/your-username/meowmart-app](https://github.com/your-username/meowmart-app)
+- Project Link: [https://github.com/sirri-ayongwa/Meowmart](https://github.com/sirri-ayongwa/Meowmart)
 
 ## Tags
 
