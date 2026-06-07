@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ShoppingBag, Heart, Plus, Minus, Trash2, X } from "lucide-react";
 import {
@@ -13,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/utils";
+import { convertUSDToNGN } from "@/lib/currencyConverter";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -59,34 +59,44 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onOpenChange }) => {
       return;
     }
     setProcessing(true);
-    const handler = window.PaystackPop.setup({
-      key: PAYSTACK_PUBLIC_KEY,
-      email: user.email,
-      amount: Math.round(cartTotal * 100),
-      currency: "USD",
-      ref: `MM-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      callback: (response: any) => {
-        (async () => {
-          const { error } = await supabase.functions.invoke("paystack-verify", {
-            body: {
-              reference: response.reference,
-              items: cartItems.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, imageUrl: i.imageUrl })),
-            },
-          });
-          setProcessing(false);
-          if (error) {
-            toast({ title: "Verification failed", description: error.message, variant: "destructive" });
-            return;
-          }
-          toast({ title: "Payment successful", description: "Your order has been placed." });
-          clearCart();
-          onOpenChange(false);
-          navigate("/account");
-        })();
-      },
-      onClose: () => setProcessing(false),
-    });
-    handler.openIframe();
+    
+    try {
+      // Convert USD to NGN for Paystack payment
+      const ngnAmount = await convertUSDToNGN(cartTotal);
+      
+      const handler = window.PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: user.email,
+        amount: ngnAmount * 100, // Paystack expects amount in kobo
+        currency: "NGN",
+        ref: `MM-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        callback: (response: any) => {
+          (async () => {
+            const { error } = await supabase.functions.invoke("paystack-verify", {
+              body: {
+                reference: response.reference,
+                items: cartItems.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, imageUrl: i.imageUrl })),
+              },
+            });
+            setProcessing(false);
+            if (error) {
+              toast({ title: "Verification failed", description: error.message, variant: "destructive" });
+              return;
+            }
+            toast({ title: "Payment successful", description: "Your order has been placed." });
+            clearCart();
+            onOpenChange(false);
+            navigate("/account");
+          })();
+        },
+        onClose: () => setProcessing(false),
+      });
+      handler.openIframe();
+    } catch (error) {
+      console.error("Error during checkout:", error);
+      toast({ title: "Checkout error", description: "An error occurred during checkout. Please try again.", variant: "destructive" });
+      setProcessing(false);
+    }
   };
 
   if (itemCount === 0) {
