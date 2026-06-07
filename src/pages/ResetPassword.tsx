@@ -51,17 +51,17 @@ const ResetPassword = () => {
     setEmailCheckMessage("");
     
     try {
-      // Check if email exists in auth users
-      const { data, error: checkError } = await supabase.auth.admin.listUsers();
+      // Use Supabase REST API directly to check if email exists
+      const { data, error } = await supabase.auth.admin.listUsers();
       
       const userExists = data?.users?.some(user => user.email === result.data);
       
-      setEmailChecked(true);
       setCheckingEmail(false);
+      setEmailChecked(true);
 
       if (!userExists) {
         setEmailExists(false);
-        setEmailCheckMessage("Email doesn't exist");
+        setEmailCheckMessage("Email doesn't exist in our system");
         toast({ 
           title: "Email not found", 
           description: "This email doesn't exist in our system. Please create a new account.", 
@@ -73,17 +73,17 @@ const ResetPassword = () => {
 
       // Email exists, send reset link
       setEmailExists(true);
-      setEmailCheckMessage("Email exists, sending reset link...");
+      setEmailCheckMessage("Email found! Sending reset link...");
       
-      const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(result.data, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       
-      if (error) {
+      if (resetError) {
         setEmailChecked(false);
         toast({ 
           title: "Error", 
-          description: error.message, 
+          description: resetError.message, 
           variant: "destructive",
           duration: TOAST_DURATION
         });
@@ -105,40 +105,15 @@ const ResetPassword = () => {
       }, 2000);
       
     } catch (err) {
+      console.error("Error checking email:", err);
       setCheckingEmail(false);
-      setEmailChecked(true);
-      
-      // Fallback: send reset link anyway (Supabase handles non-existent emails gracefully)
-      setEmailCheckMessage("Checking...");
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      
-      if (error) {
-        setEmailChecked(false);
-        toast({ 
-          title: "Error", 
-          description: error.message, 
-          variant: "destructive",
-          duration: TOAST_DURATION
-        });
-        return;
-      }
-      
-      setEmailExists(true);
-      setEmailCheckMessage("Reset link sent successfully!");
+      setEmailChecked(false);
       toast({ 
-        title: "Check your email", 
-        description: "We've sent you a reset link.", 
+        title: "Error", 
+        description: "Failed to check email. Please try again.", 
+        variant: "destructive",
         duration: TOAST_DURATION
       });
-      
-      setTimeout(() => {
-        setEmail("");
-        setEmailChecked(false);
-        setEmailCheckMessage("");
-      }, 2000);
     }
   };
 
@@ -230,10 +205,26 @@ const ResetPassword = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-meow-purple hover:bg-meow-purple/90" 
-                disabled={checkingEmail || (emailChecked && !emailExists)}
+                disabled={checkingEmail}
               >
                 {checkingEmail ? "Checking..." : "Send Reset Link"}
               </Button>
+              
+              {/* Reset button to try another email */}
+              {emailChecked && !emailExists && (
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  className="w-full" 
+                  onClick={() => {
+                    setEmail("");
+                    setEmailChecked(false);
+                    setEmailCheckMessage("");
+                  }}
+                >
+                  Try Another Email
+                </Button>
+              )}
             </form>
           ) : (
             <form onSubmit={handleUpdate} className="space-y-4">
