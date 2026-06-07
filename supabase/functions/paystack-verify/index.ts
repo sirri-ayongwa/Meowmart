@@ -57,8 +57,8 @@ Deno.serve(async (req) => {
       .insert({
         user_id: userId,
         reference,
-        amount,
-        currency,
+        amount: body.amountInUSD || (verifyJson.data.amount ?? 0) / 100,
+        currency: 'USD',
         status: 'paid',
         items,
       })
