@@ -32,16 +32,60 @@ const ResetPassword = () => {
       toast({ title: "Invalid email", description: result.error.issues[0].message, variant: "destructive" });
       return;
     }
+    
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      return;
+    
+    // Check if email exists in auth users
+    try {
+      const { data, error: checkError } = await supabase.auth.admin.listUsers();
+      
+      const emailExists = data?.users?.some(user => user.email === result.data);
+      
+      if (!emailExists) {
+        toast({ 
+          title: "Email not found", 
+          description: "This email doesn't exist in our system. Please create a new account.", 
+          variant: "destructive" 
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Email exists, send reset link
+      const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      setLoading(false);
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      
+      toast({ 
+        title: "Success!", 
+        description: "We've sent a password reset link to your email. Check your inbox!" 
+      });
+      setEmail("");
+    } catch (err) {
+      setLoading(false);
+      // Fallback: send reset link anyway (Supabase handles non-existent emails gracefully)
+      const { error } = await supabase.auth.resetPasswordForEmail(result.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      
+      toast({ 
+        title: "Check your email", 
+        description: "If an account exists with this email, we've sent a reset link." 
+      });
+      setEmail("");
     }
-    toast({ title: "Check your email", description: "We've sent you a reset link." });
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
