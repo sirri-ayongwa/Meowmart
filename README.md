@@ -67,8 +67,8 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/meowmart-app.git
-cd meowmart-app
+git clone https://github.com/sirri-ayongwa/Meowmart.git
+cd Meowmart
 ```
 
 ### 2. Install Dependencies
