@@ -56,8 +56,8 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         meow: {
-          purple: "rgb(245 195 194)",
-          pink: "#f87ddb",
+          purple: "#9b87f5",
+          pink: "rgb(245 195 194)",
           lightgray: "#f8f9fa",
           gray: "#666666",
           black: "#333333",
