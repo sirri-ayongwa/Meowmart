@@ -17,7 +17,7 @@ const schema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").max(100),
 });
 
-const TOAST_DURATION = 15000; // 15 seconds
+const TOAST_DURATION = 10000; // 10 seconds
 
 const Login = () => {
   const navigate = useNavigate();

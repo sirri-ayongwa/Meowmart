@@ -30,3 +30,8 @@ export const convertUSDToNGN = async (usdAmount: number): Promise<number> => {
   const rate = await getUSDToNairaRate();
   return Math.round(usdAmount * rate);
 };
+
+export const convertNGNToUSD = async (ngnAmount: number): Promise<number> => {
+  const rate = await getUSDToNairaRate();
+  return ngnAmount / rate;
+};

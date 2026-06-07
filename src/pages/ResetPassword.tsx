@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(100);
 
-const TOAST_DURATION = 15000; // 15 seconds
+const TOAST_DURATION = 10000; // 10 seconds
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -51,15 +51,59 @@ const ResetPassword = () => {
     setEmailCheckMessage("");
     
     try {
-      // Use Supabase REST API directly to check if email exists
-      const { data, error } = await supabase.auth.admin.listUsers();
+      // Check if email exists in the profiles table
+      console.log("Checking email existence for:", result.data);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', result.data)
+        .maybeSingle();
       
-      const userExists = data?.users?.some(user => user.email === result.data);
+      console.log("Profile query result:", { profileData, profileError });
       
       setCheckingEmail(false);
       setEmailChecked(true);
 
-      if (!userExists) {
+      if (profileError) {
+        console.error("Profile query error:", profileError);
+        // If the email column doesn't exist yet (migrations not run), fall back to sending reset email
+        // This handles the case where migrations haven't been applied yet
+        console.log("Email column might not exist, falling back to direct reset email send");
+        setEmailExists(true);
+        setEmailCheckMessage("Sending reset link...");
+        
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(result.data, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        
+        if (resetError) {
+          setEmailChecked(false);
+          toast({ 
+            title: "Error", 
+            description: resetError.message, 
+            variant: "destructive",
+            duration: TOAST_DURATION
+          });
+          return;
+        }
+        
+        setEmailCheckMessage("Reset link sent successfully!");
+        toast({ 
+          title: "Check your email", 
+          description: "We've sent you a reset link.", 
+          duration: TOAST_DURATION
+        });
+        
+        setTimeout(() => {
+          setEmail("");
+          setEmailChecked(false);
+          setEmailCheckMessage("");
+        }, 2000);
+        return;
+      }
+
+      if (!profileData) {
+        console.log("No profile found for email:", result.data);
         setEmailExists(false);
         setEmailCheckMessage("Email doesn't exist in our system");
         toast({ 

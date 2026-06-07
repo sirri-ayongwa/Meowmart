@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { LogOut, Package, Settings as SettingsIcon, User as UserIcon } from "lucide-react";
+import { convertNGNToUSD } from "@/lib/currencyConverter";
 
 const Account = () => {
   const { user, loading, signOut } = useAuth();
@@ -20,6 +21,7 @@ const Account = () => {
   const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [orders, setOrders] = useState<any[]>([]);
+  const [convertedOrders, setConvertedOrders] = useState<any[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login", { replace: true });
@@ -31,7 +33,21 @@ const Account = () => {
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
       .then(({ data }) => { if (data?.full_name) setFullName(data.full_name); });
     supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
-      .then(({ data }) => { if (data) setOrders(data); });
+      .then(async ({ data }) => { 
+        if (data) {
+          setOrders(data);
+          // Convert order amounts from NGN to USD
+          const converted = await Promise.all(data.map(async (order) => {
+            const amountInUSD = await convertNGNToUSD(order.amount);
+            const itemsWithUSD = await Promise.all((order.items as any[]).map(async (item) => {
+              const priceInUSD = await convertNGNToUSD(item.price);
+              return { ...item, price: priceInUSD };
+            }));
+            return { ...order, amount: amountInUSD, items: itemsWithUSD, currency: 'USD' };
+          }));
+          setConvertedOrders(converted);
+        }
+      });
   }, [user]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -110,7 +126,7 @@ const Account = () => {
 
             <TabsContent value="orders">
               <h2 className="text-xl font-semibold mb-4">Order History</h2>
-              {orders.length === 0 ? (
+              {convertedOrders.length === 0 ? (
                 <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-xl">
                   <Package className="mx-auto text-meow-gray mb-3" size={48} />
                   <p className="text-meow-gray">No orders yet</p>
@@ -121,7 +137,7 @@ const Account = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.map((order) => (
+                  {convertedOrders.map((order) => (
                     <div key={order.id} className="border rounded-xl p-4">
                       <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
                         <div>

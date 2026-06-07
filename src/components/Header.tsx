@@ -132,9 +132,6 @@ const Header = () => {
         <div className="fixed inset-0 top-[100px] z-50 flex h-[calc(100vh-100px)] w-full flex-col bg-white p-4 md:hidden">
           <div className="flex justify-between py-2">
             <span className="text-lg font-semibold">Menu</span>
-            <button onClick={toggleMenu}>
-              <X size={24} />
-            </button>
           </div>
           <nav className="mt-4">
             <ul className="flex flex-col space-y-4">

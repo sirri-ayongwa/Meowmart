@@ -36,7 +36,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 const STORAGE_KEY = 'meowmart_cart';
 const STORAGE_KEY_WISHLIST = 'meowmart_wishlist';
-const TOAST_DURATION = 15000; // 15 seconds
+const TOAST_DURATION = 10000; // 10 seconds
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
