@@ -79,34 +79,33 @@ const Header = () => {
               <Search size={20} />
             </button>
             <DropdownMenu>
-              <DropdownMenuTrigger className="hidden md:flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-meow-gray hover:text-white hover:bg-meow-purple transition-all duration-200 focus:outline-none">
-                <User size={18} />
-                <span>{`\n`}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {user ? (
-                  <>
-                    <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/account')} className="gap-2 cursor-pointer">
-                      <Package size={16} /> My Account
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={async () => { await signOut(); navigate('/'); }} className="gap-2 cursor-pointer">
-                      <LogOut size={16} /> Sign out
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem onClick={() => navigate('/login')} className="cursor-pointer">
-                      Sign in
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/signup')} className="cursor-pointer">
-                      Create account
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+  <DropdownMenuTrigger className="hidden md:flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-meow-gray hover:text-white hover:bg-meow-purple transition-all duration-300">
+    <User size={18} />
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end" className="w-48">
+    {user ? (
+      <>
+        <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/account')} className="gap-2 cursor-pointer">
+          <Package size={16} /> My Account
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={async () => { await signOut(); navigate('/'); }} className="gap-2 cursor-pointer">
+          <LogOut size={16} /> Sign out
+        </DropdownMenuItem>
+      </>
+    ) : (
+      <>
+        <DropdownMenuItem onClick={() => navigate('/login')} className="cursor-pointer">
+          Sign in
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/signup')} className="cursor-pointer">
+          Create account
+        </DropdownMenuItem>
+      </>
+    )}
+  </DropdownMenuContent>
+</DropdownMenu>
             <button 
               className="hidden rounded-md p-2 text-meow-gray hover:text-meow-purple md:block relative"
               onClick={() => setIsWishlistOpen(true)}
@@ -157,10 +156,21 @@ const Header = () => {
               <Search size={20} />
               <span>Search</span>
             </button>
-            <button className="flex items-center space-x-2 text-meow-gray">
-              <User size={20} />
-              <span>{`\n`}</span>
-            </button>
+            <button 
+  className="flex items-center space-x-2 text-meow-gray"
+  onClick={() => {
+    setIsMenuOpen(false);
+    if (!user) {
+      navigate('/login');
+    } else {
+      navigate('/account');
+    }
+  }}
+>
+  <User size={20} />
+  <span>{user ? 'Account' : 'Sign In'}</span>
+</button>
+            
           </div>
         </div>
       )}
