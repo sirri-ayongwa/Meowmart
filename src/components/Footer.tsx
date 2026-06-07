@@ -92,7 +92,7 @@ const Footer = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="text-sm text-meow-gray">
-              © 2025 Meowmart. All rights reserved.
+              © 2025 Meowmart. All rights reserved. <span className="font-semibold">Developed by <a href="https://github.com/sirri-ayongwa" target="_blank" rel="noopener noreferrer" className="text-meow-purple hover:underline">Sirri</a></span>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex space-x-2">
