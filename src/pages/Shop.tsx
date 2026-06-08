@@ -131,34 +131,58 @@ const Shop = () => {
     }
   ];
 
+  // Curated, reliable Unsplash images for products
+  const imagePool = [
+    "photo-1514228742587-6b1558fcca3d",
+    "photo-1606914469633-cc99e76acb3a",
+    "photo-1521572163474-6864f9cf17ab",
+    "photo-1510598969022-c4c6c5d05769",
+    "photo-1540574163026-643ea20ade25",
+    "photo-1592194996308-7b43878e84a6",
+    "photo-1589187151053-5ec8818e661b",
+    "photo-1611591437281-460bfbe1220a",
+    "photo-1513360371669-4adf3dd7dff8",
+    "photo-1495360010541-f48722b34f7d",
+    "photo-1518791841217-8f162f1e1131",
+    "photo-1574158622682-e40e69881006",
+    "photo-1533743983669-94fa5c4338ec",
+    "photo-1561948955-570b270e7c36",
+    "photo-1573865526739-10659fec78a5",
+    "photo-1592078615290-033ee584e267",
+  ];
+  const pickImage = (seed: number, size = 300) =>
+    `https://images.unsplash.com/${imagePool[seed % imagePool.length]}?auto=format&fit=crop&w=${size}&h=${size}&q=80`;
+
   // Generate dummy products for each subcategory
   useEffect(() => {
     const generateProducts = () => {
       const allProducts: Product[] = [];
       const categories = activeTab === "cats" ? catCategories : humanCategories;
-      
+      let counter = 0;
+
       categories.forEach(category => {
         category.subcategories.forEach(subcategory => {
           // Generate 3 products for each subcategory
           for (let i = 1; i <= 3; i++) {
-            const searchTerm = subcategory.slug.replace(/-/g, '+');
+            const id = subcategory.id * 100 + i;
             allProducts.push({
-              id: Math.floor(Math.random() * 10000),
+              id,
               name: `${subcategory.name} - Item ${i}`,
               price: Math.floor(Math.random() * 50) + 10,
-              imageUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 200000000)}?w=300&h=300&fit=crop&q=80`,
+              imageUrl: pickImage(counter, 300),
               category: category.name,
               subcategory: subcategory.name,
               inStock: Math.random() > 0.2,
               rating: Math.floor(Math.random() * 5) + 1,
               isBestseller: Math.random() > 0.7,
               images: [
-                `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 200000000)}?w=600&h=600&fit=crop&q=80`,
-                `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 200000000)}?w=600&h=600&fit=crop&q=80`,
-                `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 200000000)}?w=600&h=600&fit=crop&q=80`
+                pickImage(counter, 600),
+                pickImage(counter + 1, 600),
+                pickImage(counter + 2, 600),
               ],
               description: `This is a premium quality ${subcategory.name.toLowerCase()} designed with comfort and enjoyment in mind. Made from high-quality materials, this product will last for years to come.`
             });
+            counter++;
           }
         });
       });
