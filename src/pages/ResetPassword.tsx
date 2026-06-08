@@ -44,73 +44,41 @@ const ResetPassword = () => {
       });
       return;
     }
-    
-    // Start checking email
+
     setCheckingEmail(true);
     setEmailChecked(false);
     setEmailCheckMessage("");
-    
+
     try {
-      // Check if email exists in the profiles table
       console.log("Checking email existence for:", result.data);
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', result.data)
-        .maybeSingle();
-      
-      console.log("Profile query result:", { profileData, profileError });
-      
+      const { data: exists, error: rpcError } = await supabase
+        .rpc('email_exists', { _email: result.data });
+
+      console.log("email_exists result:", { exists, rpcError });
+
       setCheckingEmail(false);
       setEmailChecked(true);
 
-      if (profileError) {
-        console.error("Profile query error:", profileError);
-        // If the email column doesn't exist yet (migrations not run), fall back to sending reset email
-        // This handles the case where migrations haven't been applied yet
-        console.log("Email column might not exist, falling back to direct reset email send");
-        setEmailExists(true);
-        setEmailCheckMessage("Sending reset link...");
-        
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(result.data, {
-          redirectTo: `${window.location.origin}/reset-password`,
+      if (rpcError) {
+        console.error("email_exists error:", rpcError);
+        setEmailChecked(false);
+        toast({
+          title: "Error",
+          description: rpcError.message,
+          variant: "destructive",
+          duration: TOAST_DURATION,
         });
-        
-        if (resetError) {
-          setEmailChecked(false);
-          toast({ 
-            title: "Error", 
-            description: resetError.message, 
-            variant: "destructive",
-            duration: TOAST_DURATION
-          });
-          return;
-        }
-        
-        setEmailCheckMessage("Reset link sent successfully!");
-        toast({ 
-          title: "Check your email", 
-          description: "We've sent you a reset link.", 
-          duration: TOAST_DURATION
-        });
-        
-        setTimeout(() => {
-          setEmail("");
-          setEmailChecked(false);
-          setEmailCheckMessage("");
-        }, 2000);
         return;
       }
 
-      if (!profileData) {
-        console.log("No profile found for email:", result.data);
+      if (!exists) {
         setEmailExists(false);
         setEmailCheckMessage("Email doesn't exist in our system");
-        toast({ 
-          title: "Email not found", 
-          description: "This email doesn't exist in our system. Please create a new account.", 
+        toast({
+          title: "Email not found",
+          description: "This email doesn't exist in our system. Please create a new account.",
           variant: "destructive",
-          duration: TOAST_DURATION
+          duration: TOAST_DURATION,
         });
         return;
       }
@@ -118,48 +86,47 @@ const ResetPassword = () => {
       // Email exists, send reset link
       setEmailExists(true);
       setEmailCheckMessage("Email found! Sending reset link...");
-      
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(result.data, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (resetError) {
         setEmailChecked(false);
-        toast({ 
-          title: "Error", 
-          description: resetError.message, 
+        toast({
+          title: "Error",
+          description: resetError.message,
           variant: "destructive",
-          duration: TOAST_DURATION
+          duration: TOAST_DURATION,
         });
         return;
       }
-      
+
       setEmailCheckMessage("Reset link sent successfully!");
-      toast({ 
-        title: "Check your email", 
-        description: "We've sent you a reset link.", 
-        duration: TOAST_DURATION
+      toast({
+        title: "Check your email",
+        description: "We've sent you a reset link.",
+        duration: TOAST_DURATION,
       });
-      
-      // Reset form after successful submission
+
       setTimeout(() => {
         setEmail("");
         setEmailChecked(false);
         setEmailCheckMessage("");
       }, 2000);
-      
     } catch (err) {
       console.error("Error checking email:", err);
       setCheckingEmail(false);
       setEmailChecked(false);
-      toast({ 
-        title: "Error", 
-        description: "Failed to check email. Please try again.", 
+      toast({
+        title: "Error",
+        description: "Failed to check email. Please try again.",
         variant: "destructive",
-        duration: TOAST_DURATION
+        duration: TOAST_DURATION,
       });
     }
   };
+
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
